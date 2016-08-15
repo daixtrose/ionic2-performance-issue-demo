@@ -1,0 +1,30 @@
+<ion-menu id="menu" [content]="content">
+
+    <button block dark (click)="switchToTabView()">Switch to Tabs View</button>
+
+
+
+    <!--    <ion-toolbar>
+        <ion-title>Pages</ion-title>
+    </ion-toolbar> -->
+
+    <ion-content>
+
+        <ion-list>
+            <button ion-item *ngFor="let p of pages" (click)="openPage(p)">{{p.title}}</button>
+        </ion-list>
+        <ion-list>
+            <button ion-item *ngFor="let p of additional_pages" (click)="openPage(p)">{{p.title}}</button>
+        </ion-list>
+
+        <ion-list>
+            <ion-item>
+                <ion-label>Pepperoni</ion-label>
+                <ion-checkbox [(ngModel)]="pepperoni"></ion-checkbox>
+            </ion-item>
+        </ion-list>
+    </ion-content>
+
+
+</ion-menu>
+<ion-nav id="nav" [root]="rootPage" #content swipe-back-enabled="false"></ion-nav>

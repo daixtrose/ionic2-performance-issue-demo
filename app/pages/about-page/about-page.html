@@ -1,0 +1,22 @@
+<ion-navbar *navbar>
+  <button menuToggle>
+    <ion-icon name="menu"></ion-icon>
+  </button>
+  <ion-title>
+    About
+  </ion-title>
+</ion-navbar>
+
+<ion-content padding>
+  <p>
+    This is a demo showing a performance problem with Ionic 2 
+  </p>
+
+  <p>
+    We have some Gauges which plot using the JustGage plot library and we have a y-t plot. Bot plot types a fed with a data stream from an observable. 
+    Both plots are designed to update only every 250 ms. One uses Rx.sample the other a task to update the drawings. 
+    If both plots are visible at the same time, we encounter a performance problem (the sinus slows down). 
+
+    Why?  
+  </p>
+</ion-content>

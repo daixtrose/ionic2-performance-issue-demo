@@ -1,0 +1,48 @@
+<ion-navbar *navbar>
+  <button menuToggle>
+    <ion-icon name="menu"></ion-icon>
+  </button>
+
+  <ion-title>
+    General Information
+  </ion-title>
+</ion-navbar>
+
+<ion-content>
+  <ion-grid>
+    <ion-row>
+      <ion-col width-75>
+        <ion-item>
+          <ion-label>Show Y-T Plot</ion-label>
+          <ion-checkbox [(ngModel)]="showYtPlot"></ion-checkbox>
+        </ion-item>
+        <ion-item>
+          <ion-label>Show Gauges</ion-label>
+          <ion-checkbox [(ngModel)]="showGauges"></ion-checkbox>
+        </ion-item>
+        <yt-chart *ngIf="showYtPlot" class="yt-chart" title="" labelXAxis="Time" labelYAxis="Val" [values]="someNumbers" [minY]="0" [maxY]="10" fill='false'
+            maxNumberofSamples='200' color='#FF0000' bgColor='#FFAA00'></yt-chart>        
+        
+        <div *ngIf="showYtPlot && showGauges">
+          <h2>See how the active gauges slow down the update of the y-t plot and vice versa?</h2>
+        </div>
+        <div *ngIf="showYtPlot && !showGauges">
+          <h2>Select "Show Gauges" to see the performance impact on the update rate of the y-t plot</h2>
+        </div>    
+      </ion-col>
+      <ion-col width-25>
+        <div *ngIf="showGauges">
+          <ion-row>
+            <gauge title="A" min="0" max="400" [colors]='["#da1f3d", "#da1f3d"]'></gauge>
+          </ion-row>
+          <ion-row>
+            <gauge title="B" min="0" max="600" [colors]='["#da1f3d", "#da1f3d"]'></gauge>
+          </ion-row>
+          <ion-row>
+            <gauge title="C" min="0" max="50" [colors]='["#30666D", "#30666D"]'></gauge>
+          </ion-row>
+        </div>
+      </ion-col>
+    </ion-row>
+  </ion-grid>
+</ion-content>
