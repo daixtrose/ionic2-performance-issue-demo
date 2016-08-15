@@ -16,7 +16,7 @@ and to confirm it is device-independent:
 ionic run android
 ```
 
-Please comment using [this issue](https://github.com/daixtrose/ionic2-performance-issue-demo/issues/1).
+> Please comment using [this issue](https://github.com/daixtrose/ionic2-performance-issue-demo/issues/1).
 
 ## Description
 
