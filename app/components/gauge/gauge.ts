@@ -2,7 +2,7 @@ import { Component, Input, ElementRef, NgZone,
   OnInit, OnDestroy, OnChanges, SimpleChanges,
   ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
-import {Observable, Subscription, Subject } from 'rxjs/Rx';
+import {Observable, Subscription, Subject, Scheduler } from 'rxjs/Rx';
 import 'rxjs/add/operator/sample';
 
 import { DataService } from '../../providers/data-service/data-service';
@@ -29,12 +29,15 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
   private chartUpdateTask: any;
   private currentValue: number = 0.0;
   private subscription: Subscription;
-
+  private redrawTriggerSubject: Subject<Object>;
+  private animating: boolean = false;
+  
   constructor(
     private element: ElementRef,
     private dataService: DataService,
     private ngZone: NgZone,
     private changeDetectorRef: ChangeDetectorRef) {
+      changeDetectorRef.detach();
   }
 
   public ngOnInit(): void {
@@ -47,20 +50,18 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
     //////////////////////////////////////////////////////////////////////////////////////////
     
     let observableValue = this.dataService.someNumbersFromZeroToOne
-      .sample(Observable.interval(250)) // reduce frequency
+      .sample(Observable.interval(100)) // reduce frequency
       .map((value, index) => value * (this.max - this.min) + this.min)
       ;
 
+    this.subscription = observableValue
+      .observeOn(Scheduler.queue)
+      .subscribe(value => {
+        this.currentValue = value; 
 
-    this.subscription = observableValue.subscribe(value => {
-      this.ngZone.runOutsideAngular(() => {
-        this.currentValue = parseFloat(value.toFixed(2));
-        //console.log("-----> refreshing gauge with:", this.currentValue);
-
-        // ---> This refresh is immediate  
-        this.justGage.refresh(this.currentValue);
-        this.changeDetectorRef.markForCheck();
-      });
+        this.ngZone.runOutsideAngular(() => {
+          this.justGage.refresh(this.currentValue);
+        });
     });
   }
 
@@ -131,10 +132,10 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
       shadowSize: 5,
       shadowVerticalOffset: 3,
       levelColors: this.getColorTable(),
-      startAnimationTime: 250, // 700
+      startAnimationTime: 0, // see https://github.com/toorshia/justgage/issues/237
       // type of initial animation (linear, >, <,  <>, bounce)
       startAnimationType: '>',
-      refreshAnimationTime: 700, // 700
+      refreshAnimationTime: 0, // see https://github.com/toorshia/justgage/issues/237
       refreshAnimationType: '>',
       donutStartAngle: 90,
       valueMinFontSize: 10,

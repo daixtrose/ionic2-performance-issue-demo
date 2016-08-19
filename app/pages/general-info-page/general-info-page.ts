@@ -1,4 +1,5 @@
-import {Component, ViewChild, OnInit} from '@angular/core';
+import {Component, ViewChild, OnInit, OnChanges, AfterViewInit, SimpleChanges, 
+  ChangeDetectorRef, NgZone, ChangeDetectionStrategy} from '@angular/core';
 import {NavController, Content} from 'ionic-angular';
 import * as Rx from 'rxjs';
 import { Platform } from 'ionic-angular';
@@ -13,20 +14,33 @@ import { YtChart, XyPoint } from '../../components/yt-chart/yt-chart';
     YtChart
     ]
 })
-export class GeneralInfoPage implements OnInit {
+export class GeneralInfoPage implements OnInit, OnChanges, AfterViewInit {
   private someNumbers : Rx.Observable<XyPoint>;
-  private showYtPlot: boolean;
-  private showGauges: boolean;
-  constructor(private navController: NavController) {
+  private showYtPlot: boolean = false;
+  private showGauges: boolean = false;
+  
+  constructor(
+    private navController: NavController, 
+    private changeDetectorRef: ChangeDetectorRef,
+    private ngZone: NgZone) {
     this.someNumbers = Rx.Observable.interval(10, Rx.Scheduler.async)
       .map(counter => new XyPoint(this.getCSharpTicks(), this.generateSinusNumber(counter) * 5.0 + 5.0));
   }
 
   public ngOnInit(): void {
+      
+  }
+
+  public ngAfterViewInit(): void {
     this.showYtPlot = true;
+  } 
+
+  ngOnChanges(changes: SimpleChanges) {
+    
   }
 
   generateSinusNumber(counter): number {
+      //console.log("YT Data: generating value");
       return Math.sin(counter / 60.0);
   }
 
