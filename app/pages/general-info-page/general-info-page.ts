@@ -6,6 +6,7 @@ import { Platform } from 'ionic-angular';
 
 import { Gauge } from '../../components/gauge/gauge';
 import { YtChart, XyPoint } from '../../components/yt-chart/yt-chart';
+import { DataService } from '../../providers/data-service/data-service';
 
 @Component({
   templateUrl: 'build/pages/general-info-page/general-info-page.html',
@@ -21,11 +22,12 @@ export class GeneralInfoPage implements OnInit, OnDestroy, OnChanges, AfterViewI
   private subject: Rx.Subject<XyPoint>;
   private updateInterval: number = 10;
   private subscription: Rx.Subscription;
-
+  
   constructor(
     private navController: NavController,
     private changeDetectorRef: ChangeDetectorRef,
-    private ngZone: NgZone) {
+    private ngZone: NgZone,
+    private dataService: DataService) {
     this.subject = new Rx.Subject<XyPoint>();
     this.someNumbers = this.subject.asObservable();
   }
@@ -60,10 +62,14 @@ export class GeneralInfoPage implements OnInit, OnDestroy, OnChanges, AfterViewI
       console.log("---> onChangeUpdateInterval");
       console.log(updateInterval);
 
+      this.updateInterval = updateInterval;    
+
       if (this.subscription) {
         this.subscription.unsubscribe();
       }
       this.startSendingDataAtRate(updateInterval);
+
+      this.dataService.setUpdateInterval(updateInterval);
   }
 
   // There seems to be a bug and this is not called - ???  

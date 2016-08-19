@@ -17,6 +17,16 @@
             <ion-label>Show Y-T Plot</ion-label>
             <ion-checkbox [(ngModel)]="showYtPlot"></ion-checkbox>
           </ion-item>
+        <ion-item>
+            <!-- There is a bug in Ionic or Angular RC5 which hinders us to use ion-input
+            <ion-label floating>Data Source Update Interval [ms]</ion-label> -->
+            <label>Data Source Update Interval [ms]</label>
+            <p>
+              <!-- <input [(ngModel)]="updateInterval" type="number" value="10"> -->
+              <input #updateIntervalInput [value]="10" (input)="onChangeUpdateInterval( updateIntervalInput.value )" 
+                type="number">
+              </p>
+          </ion-item>
         </ion-row>
         <ion-row>
           <ion-item>
@@ -33,21 +43,13 @@
           </ion-item>
         </ion-row>
         <ion-row>
-          <ion-item>
-            <!-- There is a bug in Ionic or Angular RC5 which hinders us to use ion-input
-            <ion-label floating>Data Source Update Interval [ms]</ion-label> -->
-            <label>Data Source Update Interval [ms]</label>
-            <p>
-              <!-- <input [(ngModel)]="updateInterval" type="number" value="10"> -->
-              <input #updateIntervalInput [value]="10" (input)="onChangeUpdateInterval( updateIntervalInput.value )" type="number">
-              </p>
-          </ion-item>
+          
         </ion-row>
-        <ion-row>
+        <!--<ion-row>
           <div>
             <p> XXXX {{updateInterval}} </p>
           </div>
-        </ion-row>
+        </ion-row>-->
         <ion-row>
           <yt-chart *ngIf='showYtPlot' class="yt-chart" title="" labelXAxis="Time" labelYAxis="Val" [values]="someNumbers" [minY]="0"
             [maxY]="10" fill='false' maxNumberofSamples='200' color='#FF0000' bgColor='#FFAA00'></yt-chart>
