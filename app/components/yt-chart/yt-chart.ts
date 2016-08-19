@@ -1,6 +1,7 @@
-import { Component, Input, OnDestroy, OnChanges, OnInit, ElementRef, 
+import { Component, Input, OnDestroy, OnChanges, OnInit, ElementRef,
   ChangeDetectionStrategy, ChangeDetectorRef, NgZone } from '@angular/core';
 import * as Rx from 'rxjs';
+import 'rxjs/add/operator/bufferTime';
 
 // -----------------------------------------------------------------------------
 export class XyPoint {
@@ -38,55 +39,71 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
   private ctx: any;
   private chart: any = null;
   private chartUpdateTask: any;
-  private valuesSubscription: Rx.Subscription; 
+  private valuesSubscription: Rx.Subscription;
+  private updateSubscription: Rx.Subscription;
+  private sampleCounterSubscription: Rx.Subscription;
+  private numberOfReceivedValues: number;
 
-  public constructor(private element: ElementRef, private zone: NgZone
-    /*, private changeDetectorRef: ChangeDetectorRef */) {
+  public constructor(private element: ElementRef, private zone: NgZone,
+    private changeDetectorRef: ChangeDetectorRef) {
 
-    // changeDetectorRef.detach();
-    // setInterval(() => {
-    //     this.changeDetectorRef.detectChanges();
-    // }, 250);
+      // This AFAICS has absolutely no effect 
+      //changeDetectorRef.detach();
   }
 
   public ngOnInit(): void {
-    console.log("-----> this.element: ", typeof(this.element), " == ", JSON.stringify(this.element));
-    console.log("-----> this.element.nativeElement.childNodes[0]: ", typeof(this.element.nativeElement.childNodes[0]));
+    // console.log("-----> this.element: ", typeof (this.element), " == ", JSON.stringify(this.element));
+    // console.log("-----> this.element.nativeElement.childNodes[0]: ", typeof (this.element.nativeElement.childNodes[0]));
     // console.log("-----> this.element.nativeElement.childNodes[0]: ", typeof(this.element.nativeElement.childNodes[0]))
     // console.log("-----> this.element.nativeElement.childNodes[0]: ", typeof(this.element.nativeElement.childNodes[0]))
-    
 
     this.ctx = this.element.nativeElement.childNodes[0].getContext("2d");
     this.chart = new Chart(this.ctx, this.getDefaultOptions());
+    
 
     for (let i = 0; i < this.maxNumberofSamples; i++) {
       this.addValueToChartData(new XyPoint(i, 0));
     }
 
     // subscribe to store all values that come in
-    this.valuesSubscription = this.values.subscribe(xyPoint => {
-      this.addValueToChartData(xyPoint);
-    });
+    this.valuesSubscription = this.values
+      .observeOn(Rx.Scheduler.queue)
+      .subscribe(xyPoint => {
+        this.addValueToChartData(xyPoint);
+        
+      });
+
+    let sampleTime = 1000;
 
     // run an update task at a lower frequency
-    this.chartUpdateTask = setInterval(() => {
-      this.zone.runOutsideAngular(() => {
-          this.chart.update(50, true);
+    this.updateSubscription = Rx.Observable.interval(sampleTime, Rx.Scheduler.async)
+      .observeOn(Rx.Scheduler.queue)
+      .subscribe(_ => {
+        //this.zone.runOutsideAngular(() => {
+            this.chart.update(0, false);
+        //});
       });
-    }, 250);
+
+    this.sampleCounterSubscription = this.values
+      .observeOn(Rx.Scheduler.queue)
+      .bufferTime(sampleTime)
+      .subscribe(values => {
+          this.numberOfReceivedValues = values.length; 
+          this.changeDetectorRef.markForCheck();
+        });
   }
 
   public ngOnChanges(): void {
-    
+
   }
 
-  addValueToChartData(dataPoint: XyPoint) : void {
+  addValueToChartData(dataPoint: XyPoint): void {
+    //console.log("----> YT receiving value");
     if (!dataPoint) {
       return;
     }
 
-    if (!this.chart)
-    {
+    if (!this.chart) {
       return;
     }
 
@@ -112,6 +129,7 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
       }
     }
 
+    //this.animate();
     //this.chart.update(50, true);
   }
 
@@ -119,15 +137,19 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
     // terminate the update task
     clearInterval(this.chartUpdateTask);
 
+    // unsubscribe from plot update 
+    this.updateSubscription.unsubscribe(); 
+
     // unsubscribe from data stream
     this.valuesSubscription.unsubscribe();
-
+    this.sampleCounterSubscription.unsubscribe();
+     
     if (this.chart) {
       this.chart.destroy();
       this.chart = void 0;
     }
   }
-  
+
 
   private createDatasets(): any[] {
     let datasets = [];
@@ -156,7 +178,7 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
   private getDefaultOptions() {
     return {
       type: 'line',
-      lineTension: 0, 
+      lineTension: 0,
       data: {
         datasets: this.createDatasets()
       },
@@ -172,6 +194,9 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
         },
         tooltips: {
           enabled: false
+        },
+        animation: {
+          duration: 0
         },
         scales: {
           xAxes: [{

@@ -2,7 +2,7 @@ import { Component, Input, ElementRef, NgZone,
   OnInit, OnDestroy, OnChanges, SimpleChanges,
   ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 
-import {Observable, Subscription, Subject } from 'rxjs/Rx';
+import {Observable, Subscription, Subject, Scheduler } from 'rxjs/Rx';
 import 'rxjs/add/operator/sample';
 
 import { DataService } from '../../providers/data-service/data-service';
@@ -29,12 +29,18 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
   private chartUpdateTask: any;
   private currentValue: number = 0.0;
   private subscription: Subscription;
+  private sampleCounterSubscription: Subscription; 
+  private redrawTriggerSubject: Subject<Object>;
+  private animating: boolean = false;
+  private numberOfReceivedValues: number;   
+
 
   constructor(
     private element: ElementRef,
     private dataService: DataService,
     private ngZone: NgZone,
     private changeDetectorRef: ChangeDetectorRef) {
+      changeDetectorRef.detach();
   }
 
   public ngOnInit(): void {
@@ -47,21 +53,32 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
     //////////////////////////////////////////////////////////////////////////////////////////
     
     let observableValue = this.dataService.someNumbersFromZeroToOne
-      .sample(Observable.interval(250)) // reduce frequency
+      .sample(Observable.interval(100)) // reduce frequency
       .map((value, index) => value * (this.max - this.min) + this.min)
       ;
 
-
-    this.subscription = observableValue.subscribe(value => {
-      this.ngZone.runOutsideAngular(() => {
-        this.currentValue = parseFloat(value.toFixed(2));
-        //console.log("-----> refreshing gauge with:", this.currentValue);
-
-        // ---> This refresh is immediate  
+    this.subscription = observableValue
+      .observeOn(Scheduler.queue)
+      .subscribe(value => {
+        this.currentValue = value; 
         this.justGage.refresh(this.currentValue);
         this.changeDetectorRef.markForCheck();
+
+        // this.ngZone.runOutsideAngular(() => {
+        //   this.justGage.refresh(this.currentValue);
+        // });
       });
-    });
+
+    let sampleTime = 1000;  
+
+    this.sampleCounterSubscription = this.dataService.someNumbersFromZeroToOne
+      .observeOn(Scheduler.queue)
+      .bufferTime(sampleTime)
+      .subscribe(values => {
+          this.numberOfReceivedValues = values.length; 
+          this.changeDetectorRef.markForCheck();
+        });  
+
   }
 
   public ngOnDestroy(): void {
@@ -89,11 +106,8 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
 
   private clearSubscription(): void {
     console.log("-----> clearing subscription");
-
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
+    this.sampleCounterSubscription.unsubscribe();
+    this.subscription.unsubscribe();
   }
 
   private getColorTable(): string[] {
@@ -131,10 +145,10 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
       shadowSize: 5,
       shadowVerticalOffset: 3,
       levelColors: this.getColorTable(),
-      startAnimationTime: 250, // 700
+      startAnimationTime: 0, // see https://github.com/toorshia/justgage/issues/237
       // type of initial animation (linear, >, <,  <>, bounce)
       startAnimationType: '>',
-      refreshAnimationTime: 700, // 700
+      refreshAnimationTime: 0, // see https://github.com/toorshia/justgage/issues/237
       refreshAnimationType: '>',
       donutStartAngle: 90,
       valueMinFontSize: 10,

@@ -1,33 +1,94 @@
-import {Component, ViewChild, OnInit} from '@angular/core';
+import {Component, ViewChild, OnInit, OnDestroy, OnChanges, AfterViewInit, SimpleChanges,
+  ChangeDetectorRef, NgZone, ChangeDetectionStrategy} from '@angular/core';
 import {NavController, Content} from 'ionic-angular';
 import * as Rx from 'rxjs';
 import { Platform } from 'ionic-angular';
 
 import { Gauge } from '../../components/gauge/gauge';
 import { YtChart, XyPoint } from '../../components/yt-chart/yt-chart';
+import { DataService } from '../../providers/data-service/data-service';
 
 @Component({
   templateUrl: 'build/pages/general-info-page/general-info-page.html',
   directives: [
-    Gauge, 
+    Gauge,
     YtChart
-    ]
+  ]
 })
-export class GeneralInfoPage implements OnInit {
-  private someNumbers : Rx.Observable<XyPoint>;
-  private showYtPlot: boolean;
-  private showGauges: boolean;
-  constructor(private navController: NavController) {
-    this.someNumbers = Rx.Observable.interval(10, Rx.Scheduler.async)
-      .map(counter => new XyPoint(this.getCSharpTicks(), this.generateSinusNumber(counter) * 5.0 + 5.0));
+export class GeneralInfoPage implements OnInit, OnDestroy, OnChanges, AfterViewInit {
+  private someNumbers: Rx.Observable<XyPoint>;
+  private showYtPlot: boolean = false;
+  private showGauges: boolean = false;
+  private subject: Rx.Subject<XyPoint>;
+  private updateInterval: number = 10;
+  private subscription: Rx.Subscription;
+  
+  constructor(
+    private navController: NavController,
+    private changeDetectorRef: ChangeDetectorRef,
+    private ngZone: NgZone,
+    private dataService: DataService) {
+    this.subject = new Rx.Subject<XyPoint>();
+    this.someNumbers = this.subject.asObservable();
   }
 
   public ngOnInit(): void {
+    this.startSendingDataAtRate(this.updateInterval);
+  }
+
+  private startSendingDataAtRate(changedUpdateInterval: number): void {
+    this.subscription = Rx.Observable.interval(changedUpdateInterval, Rx.Scheduler.async)
+      .map(counter => new XyPoint(this.getCSharpTicks(), this.generateSinusNumber(counter) * 5.0 + 5.0))
+      .subscribe(xy => this.subject.next(xy));
+  }
+
+  public ngOnDestroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+  }
+
+  public ngAfterViewInit(): void {
     this.showYtPlot = true;
   }
 
+  public updateIntervalChanged()
+  {
+    console.log("---> Bingo ", this.updateInterval);
+  }
+
+  public onChangeUpdateInterval(updateInterval: number)
+  {
+      console.log("---> onChangeUpdateInterval");
+      console.log(updateInterval);
+
+      this.updateInterval = updateInterval;    
+
+      if (this.subscription) {
+        this.subscription.unsubscribe();
+      }
+      this.startSendingDataAtRate(updateInterval);
+
+      this.dataService.setUpdateInterval(updateInterval);
+  }
+
+  // There seems to be a bug and this is not called - ???  
+  public ngOnChanges(changes: SimpleChanges): void {
+    console.log("---> ngOnChanges");
+    
+    let changedUpdateInterval = changes['updateInterval'];
+
+    if (changedUpdateInterval) {
+      if (this.subscription) {
+        this.subscription.unsubscribe();
+      }
+      this.startSendingDataAtRate(changedUpdateInterval.currentValue);
+    }
+  }
+
   generateSinusNumber(counter): number {
-      return Math.sin(counter / 60.0);
+    //console.log("YT Data: generating value");
+    return Math.sin(counter / 60.0);
   }
 
   // generate CShart compatiböle DateTime ticks
