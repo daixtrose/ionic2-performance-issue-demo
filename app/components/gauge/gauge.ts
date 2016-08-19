@@ -29,9 +29,12 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
   private chartUpdateTask: any;
   private currentValue: number = 0.0;
   private subscription: Subscription;
+  private sampleCounterSubscription: Subscription; 
   private redrawTriggerSubject: Subject<Object>;
   private animating: boolean = false;
-  
+  private numberOfReceivedValues: number;   
+
+
   constructor(
     private element: ElementRef,
     private dataService: DataService,
@@ -58,11 +61,24 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
       .observeOn(Scheduler.queue)
       .subscribe(value => {
         this.currentValue = value; 
+        this.justGage.refresh(this.currentValue);
+        this.changeDetectorRef.markForCheck();
 
-        this.ngZone.runOutsideAngular(() => {
-          this.justGage.refresh(this.currentValue);
-        });
-    });
+        // this.ngZone.runOutsideAngular(() => {
+        //   this.justGage.refresh(this.currentValue);
+        // });
+      });
+
+    let sampleTime = 1000;  
+
+    this.sampleCounterSubscription = this.dataService.someNumbersFromZeroToOne
+      .observeOn(Scheduler.queue)
+      .bufferTime(sampleTime)
+      .subscribe(values => {
+          this.numberOfReceivedValues = values.length; 
+          this.changeDetectorRef.markForCheck();
+        });  
+
   }
 
   public ngOnDestroy(): void {
@@ -90,11 +106,8 @@ export class Gauge implements OnInit, OnDestroy, OnChanges {
 
   private clearSubscription(): void {
     console.log("-----> clearing subscription");
-
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-      this.subscription = null;
-    }
+    this.sampleCounterSubscription.unsubscribe();
+    this.subscription.unsubscribe();
   }
 
   private getColorTable(): string[] {

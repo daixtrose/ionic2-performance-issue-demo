@@ -1,6 +1,7 @@
 import { Component, Input, OnDestroy, OnChanges, OnInit, ElementRef,
   ChangeDetectionStrategy, ChangeDetectorRef, NgZone } from '@angular/core';
 import * as Rx from 'rxjs';
+import 'rxjs/add/operator/bufferTime';
 
 // -----------------------------------------------------------------------------
 export class XyPoint {
@@ -40,12 +41,14 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
   private chartUpdateTask: any;
   private valuesSubscription: Rx.Subscription;
   private updateSubscription: Rx.Subscription;
-  
+  private sampleCounterSubscription: Rx.Subscription;
+  private numberOfReceivedValues: number;
+
   public constructor(private element: ElementRef, private zone: NgZone,
     private changeDetectorRef: ChangeDetectorRef) {
 
       // This AFAICS has absolutely no effect 
-      changeDetectorRef.detach();
+      //changeDetectorRef.detach();
   }
 
   public ngOnInit(): void {
@@ -67,16 +70,27 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
       .observeOn(Rx.Scheduler.queue)
       .subscribe(xyPoint => {
         this.addValueToChartData(xyPoint);
+        
       });
 
+    let sampleTime = 1000;
+
     // run an update task at a lower frequency
-    this.updateSubscription = Rx.Observable.interval(250, Rx.Scheduler.async)
+    this.updateSubscription = Rx.Observable.interval(sampleTime, Rx.Scheduler.async)
       .observeOn(Rx.Scheduler.queue)
       .subscribe(_ => {
-        this.zone.runOutsideAngular(() => {
+        //this.zone.runOutsideAngular(() => {
             this.chart.update(0, false);
-        });
+        //});
       });
+
+    this.sampleCounterSubscription = this.values
+      .observeOn(Rx.Scheduler.queue)
+      .bufferTime(sampleTime)
+      .subscribe(values => {
+          this.numberOfReceivedValues = values.length; 
+          this.changeDetectorRef.markForCheck();
+        });
   }
 
   public ngOnChanges(): void {
@@ -128,7 +142,8 @@ export class YtChart implements OnDestroy, OnChanges, OnInit {
 
     // unsubscribe from data stream
     this.valuesSubscription.unsubscribe();
-
+    this.sampleCounterSubscription.unsubscribe();
+     
     if (this.chart) {
       this.chart.destroy();
       this.chart = void 0;

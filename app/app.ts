@@ -58,3 +58,8 @@ export class MyApp {
 
 enableProdMode();
 ionicBootstrap(MyApp, [DataService])
+
+// import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+// import { AppModule }              from './app/app.module';
+
+// platformBrowserDynamic().bootstrapModule(AppModule);

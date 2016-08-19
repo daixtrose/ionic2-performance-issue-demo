@@ -20,9 +20,33 @@
         </ion-row>
         <ion-row>
           <ion-item>
-            <ion-label>Show Gauges</ion-label>
-            <ion-checkbox [(ngModel)]="showGauges"></ion-checkbox>
+            <ion-label>Show Gauge 1</ion-label>
+            <ion-checkbox [(ngModel)]="showGauge1"></ion-checkbox>
           </ion-item>
+          <ion-item>
+            <ion-label>Show Gauge 2</ion-label>
+            <ion-checkbox [(ngModel)]="showGauge2"></ion-checkbox>
+          </ion-item>
+          <ion-item>
+            <ion-label>Show Gauge 3</ion-label>
+            <ion-checkbox [(ngModel)]="showGauge3"></ion-checkbox>
+          </ion-item>
+        </ion-row>
+        <ion-row>
+          <ion-item>
+            <!-- There is a bug in Ionic or Angular RC5 which hinders us to use ion-input
+            <ion-label floating>Data Source Update Interval [ms]</ion-label> -->
+            <label>Data Source Update Interval [ms]</label>
+            <p>
+              <!-- <input [(ngModel)]="updateInterval" type="number" value="10"> -->
+              <input #updateIntervalInput [value]="10" (input)="onChangeUpdateInterval( updateIntervalInput.value )" type="number">
+              </p>
+          </ion-item>
+        </ion-row>
+        <ion-row>
+          <div>
+            <p> XXXX {{updateInterval}} </p>
+          </div>
         </ion-row>
         <ion-row>
           <yt-chart *ngIf='showYtPlot' class="yt-chart" title="" labelXAxis="Time" labelYAxis="Val" [values]="someNumbers" [minY]="0"
@@ -30,24 +54,24 @@
         </ion-row>
         <ion-row>
 
-          <div *ngIf="showYtPlot && showGauges">
+          <div *ngIf="showYtPlot && (showGauge1 || showGauge2 || showGauge3)">
             <h2>See how the active gauges slow down the update of the y-t plot and vice versa?</h2>
           </div>
 
-          <div *ngIf="showYtPlot && !showGauges">
+          <div *ngIf="showYtPlot && !showGauge1 && !showGauge2 && !showGauge3">
             <h2>Select "Show Gauges" to see the performance impact on the update rate of the y-t plot</h2>
           </div>
         </ion-row>
       </ion-col>
       <ion-col width-25>
-        <div *ngIf="showGauges">
-          <ion-row>
+        <div>
+          <ion-row *ngIf="showGauge1">
             <gauge title="A" min="0" max="400" [colors]='["#da1f3d", "#da1f3d"]'></gauge>
           </ion-row>
-          <ion-row>
+          <ion-row *ngIf="showGauge2">
             <gauge title="B" min="0" max="600" [colors]='["#da1f3d", "#da1f3d"]'></gauge>
           </ion-row>
-          <ion-row>
+          <ion-row *ngIf="showGauge3">
             <gauge title="C" min="0" max="50" [colors]='["#30666D", "#30666D"]'></gauge>
           </ion-row>
         </div>
